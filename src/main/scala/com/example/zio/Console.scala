@@ -1,5 +1,8 @@
-// Scala 3 syntax version of https://zio.dev/docs/overview/overview_background
+package com.example.zio
 
+import com.example.zio.Console.{PrintLine, ReadLine, Return}
+
+// Scala 3 syntax version of https://zio.dev/docs/overview/overview_background
 
 enum Console[+A]:
   case Return(value: () => A)
@@ -8,12 +11,11 @@ enum Console[+A]:
 
 object Console {
   def succeded[A](a: => A): Console[A] = Return(() => a)
-
   def printLine(line: String): Console[Unit] = PrintLine(line, succeded(()))
-
   val readLine: Console[String] = ReadLine(line => succeded(line))
 }
 
+// this is necessary in order to be able to use Console in a for-comprehension
 extension [A](console: Console[A])
   def flatMap[B](f: A => Console[B]): Console[B] =
     console match {
