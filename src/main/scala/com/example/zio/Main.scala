@@ -39,15 +39,17 @@ object HelloExample {
 object Main extends App {
   // *> operator is an alias for the zipRight function, and let us concatenate the execution of two
   // effects not depending on each other.
-  override def run(args: List[String]) = (FibersExample.app1 *> FibersExample.app2 *> subscriptionApp).exitCode
+  override def run(args: List[String]) = (FibersExample.app1 *> FibersExample.app2 *> mainApp).exitCode
 
-  val subscriptionLayer = (UserServiceLive.layer ++ MailerServiceLive.layer) >>> SubscriptionServiceLive.layer
+  val subscriptionProgram: URIO[Has[SubscriptionService], Unit] =
+    SubscriptionService.subscribe("Julio", "juliobetta@gmail.com")
 
-  val subscriptionApp = SubscriptionService
-    .subscribe("Julio", "juliobetta@email.com")
-    // the good thing about that is that we could provide a Test layer, instead of "Live"
-    .provideLayer(subscriptionLayer)
-    // Another way to inject the dependencies
-    //.provideLayer(SubscriptionServiceLive.layer)
-    //.injectCustom(UserServiceLive.layer, MailerServiceLive.layer)
+  val mainApp = subscriptionProgram
+    // the order doesn't matter
+    // tip: try commenting out some layer. the error message is awesome!
+    .injectCustom(
+      UserServiceLive.layer,
+      SubscriptionServiceLive.layer,
+      MailerServiceLive.layer
+    )
 }
