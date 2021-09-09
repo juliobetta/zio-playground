@@ -31,4 +31,7 @@ object SubscriptionServiceLive {
     Has[UserService] with Has[MailerService],
     Has[SubscriptionService]
   ] = (SubscriptionServiceLive(_, _)).toLayer
+
+  // inject env in the main program! thanks to @adamfraser for the tip :)
+  val env = (UserServiceLive.layer ++ MailerServiceLive.layer) >>> SubscriptionServiceLive.layer
 }

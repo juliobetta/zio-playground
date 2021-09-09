@@ -5,6 +5,9 @@ import com.example.zio.services.{MailerServiceLive, SubscriptionService, Subscri
 import java.util.UUID
 import zio.*
 
+// use this project as reference, since it's using module pattern 2.0
+// https://github.com/josdirksen/zio-playground
+
 object FibersExample {
   // https://blog.rockthejvm.com/zio-fibers/
   // https://zio.dev/docs/overview/overview_basic_concurrency
@@ -37,19 +40,34 @@ object HelloExample {
 }
 
 object Main extends App {
-  // *> operator is an alias for the zipRight function, and let us concatenate the execution of two
-  // effects not depending on each other.
-  override def run(args: List[String]) = (FibersExample.app1 *> FibersExample.app2 *> mainApp).exitCode
+  override def run(args: List[String]) = {
+    val square: URIO[Int, Int] =
+      for {
+        env <- ZIO.environment[Int]
+      } yield env * env
 
-  val subscriptionProgram: URIO[Has[SubscriptionService], Unit] =
-    SubscriptionService.subscribe("Julio", "juliobetta@gmail.com")
+    val result: UIO[Int] = square.provide(42)
 
-  val mainApp = subscriptionProgram
-    // the order doesn't matter
-    // tip: try commenting out some layer. the error message is awesome!
-    .injectCustom(
-      UserServiceLive.layer,
-      SubscriptionServiceLive.layer,
-      MailerServiceLive.layer
+    // *> operator is an alias for the zipRight function, and let us concatenate the execution of two or more
+    // effects not depending on each other.
+    (
+      result.debug *>
+      FibersExample.app1 *>
+      FibersExample.app2 *>
+      subscriptionProgram
     )
+      .injectCustom(SubscriptionServiceLive.env)
+      .exitCode
+  }
+
+    val subscriptionProgram = SubscriptionService.subscribe("Julio", "juliobetta@gmail.com")
+
+    // ALTERNATIVE:
+    // val mainApp = subscriptionProgram
+    //  .injectCustom(
+    //    UserServiceLive.layer,
+    //    SubscriptionServiceLive.layer,
+    //    MailerServiceLive.layer
+    //  )
+    // ... and then use `mainApp` in the `run` method
 }
